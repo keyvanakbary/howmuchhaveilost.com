@@ -6,7 +6,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="x-ua-compatible" content="ie=edge">
-  <link href="https://fonts.googleapis.com/css?family=Roboto:300,400" rel="stylesheet">
+  <!-- <link href="https://fonts.googleapis.com/css?family=Roboto:300,400" rel="stylesheet"> -->
   <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.min.css">
   <meta property="og:locale" content="en_GB">
   <meta property="og:type" content="article">
@@ -117,14 +117,14 @@
             <div class="form-group">
               <div class="input-group">
                 <div class="input-group-addon">£</div>
-                <input type="text" class="form-control" placeholder="Amount" value="300">
+                <input type="text" class="form-control" placeholder="Amount" value="300" id="amount">
               </div>
             </div>
             <div class="form-group">
               <p class="form-control-static">somewhere in Europe</p>
             </div>
           </form>
-          <button class="btn btn-outline-primary btn-lg m-t-2" id="calculate">Calculate loss</button>
+          <button type="submit" class="btn btn-outline-primary btn-lg m-t-2" id="calculate">Calculate loss</button>
         </div>
       </div>
     </div>
@@ -135,12 +135,20 @@
       <div class="container">
         <div class="row p-t-3 p-b-3">
           <div class="col-md-9 text-md-right">
-            <h2 class="m-b-2">You've lost around 20€!</h2>
+            <h2 class="m-b-2">You've lost around <span id="diff"></span>€!</h2>
 
-            <p class="">Your hard-earned £300 was valued in <strong>400€ before the referendum</strong>.<br>The same amount <strong>today is valued in 380€</strong> because of Pound devaluation.<br><small>£1 = 1.31€ before brexit / £1 = 1.17€ <strong>today</strong></small></p>
+            <p class="lead">
+              Your precious £<span id="original"></span> were valued in <strong><span id="before"></span>€ before the referendum</strong>.<br>
+              The same amount <strong>today is valued in <span id="after"></span>€</strong> because of Pound devaluation against the Euro.<br>
+              <sub><em>£1 = 1.31€ before brexit / £1 = 1.17€ <strong>today</strong></em></sub>
+            </p>
+
+            <!-- <a href="/" class="text-warning">Tell me about exchange rate</a>
+            <span> / <span> -->
+            <a href="/" class="text-warning">Try again</a>
           </div>
           <div class="col-md-3 text-md-left">
-            <img src="farage.png" width="80">
+            <img src="farage.png" width="140">
           </div>
         </div>
       </div>
@@ -164,10 +172,87 @@
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.3/js/bootstrap.min.js" integrity="sha384-ux8v3A6CPtOTqOzMKiuo3d/DomGaaClxFYdCu2HPMBEkf6x2xiDyJ7gkXU0MWwaD" crossorigin="anonymous"></script>
 
   <script>
-    $('#calculate').on('click', function() {
-      $('#result-section').removeClass('hidden-xs-up');
-      $('#calculate-section').addClass('hidden-xs-up');
-    });
+    var HashValue = function(onChange) {
+      var
+        hash = function() {
+          return window.location.hash;
+        },
+        hashValue = function() {
+          return parseInt(hash().replace(/^#/,''));
+        },
+        setValue = function(value) {
+          window.location.hash = value;
+          onChange(value);
+        };
+
+      if (hash()) {
+        onChange(hashValue());
+      }
+
+      $(window).on('hashchange', function() {
+        onChange(hashValue())
+      });
+
+      return {
+        set: setValue
+      }
+    };
+
+    var Calculator = function(rateToday) {
+      var
+        RATE_BEFORE = 1.31,//rate GBP-EUR
+        RATE_INVERSE_TODAY = 1/rateToday;
+
+      return {
+        calculate: function(amountPounds) {
+            var
+              before = amountPounds * RATE_BEFORE,
+              after = amountPounds * rateToday,
+              diff = before - after;
+
+            return {
+              before: before,
+              after: after,
+              diff: diff,
+              diffPounds: diff * RATE_INVERSE_TODAY
+            };
+        }
+      }
+    }
+
+    var
+      elements = {
+        calculateButton: $('#calculate'),
+        resultSection: $('#result-section'),
+        calculateSection: $('#calculate-section'),
+        amountField: $('#amount'),
+        originalField: $('#original'),
+        diffField: $('#diff'),
+        afterField: $('#after'),
+        beforeField: $('#before')
+      },
+      CLASS = {
+        HIDDEN: 'hidden-xs-up'
+      },
+      calculator = Calculator(1.17),
+      calculate = function(amount)  {
+        elements.resultSection.removeClass(CLASS.HIDDEN);
+        elements.calculateSection.addClass(CLASS.HIDDEN);
+        var result = calculator.calculate(amount);
+
+        elements.originalField.text(amount);
+        elements.diffField.text(Math.round(result.diff));
+elements.beforeField.text(Math.round(result.before));
+elements.afterField.text(Math.round(result.after));
+      },
+      init = function() {
+        hashValue = HashValue(calculate);
+        elements.calculateButton.on('click', function() {
+          hashValue.set(elements.amountField.val());
+        });
+      };
+
+    init();
   </script>
 </body>
 </html>
