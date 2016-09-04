@@ -100,7 +100,7 @@
           </p>
         </div>
         <div class="col-md-8 text-md-left">
-          <h1>Wondering how much have you lost on the exchange rate after <a href="">#Brexit</a> referendum?</h1>
+          <h1>Wondering how much have you lost on the exchange rate after <a href="https://twitter.com/search?q=Brexit">#Brexit</a> referendum?</h1>
         </div>
       </div>
     </div>
@@ -133,22 +133,33 @@
   <div class="hidden-xs-up" id="result-section">
     <section class="bg-danger">
       <div class="container">
-        <div class="row p-t-3 p-b-3">
+        <div class="row p-t-3">
           <div class="col-md-9 text-md-right">
-            <h2 class="m-b-2">You've lost around <span id="diff"></span>€!</h2>
+            <img src="farage.png" class="m-b-2 hidden-md-up visible-sm-down" width="100">
+
+            <h2 class="m-b-2">You've lost at least <span id="diff"></span>€ on the exchange rate!</h2>
 
             <p class="lead">
-              Your precious £<span id="original"></span> was valued at <strong><span id="before"></span>€ before the referendum</strong>.<br>
+              Your precious £<span id="original"></span> was valued at <strong><span id="before"></span>€ before the referendum</strong>.
               The same amount <strong>today is valued at <span id="after"></span>€</strong> because of Pound devaluation against the Euro.<br>
-              <sub><em>£1 = 1.31€ before brexit / £1 = 1.17€ <strong>today</strong></em></sub>
+              <sub><em>£1 = <span id="rate-before"></span>€ before brexit / £1 = <span id="rate-after"></span>€ <strong>today's <a href="https://transferwise.com/mid-market-rate" class="text-warning">mid-market rate</a></strong></em>
             </p>
 
-            <!-- <a href="/" class="text-warning">Tell me about exchange rate</a>
-            <span> / <span> -->
-            <a href="/" class="text-warning">Try again</a>
           </div>
-          <div class="col-md-3 text-md-left">
+          <div class="col-md-3 text-md-left hidden-sm-down visible-md-up">
             <img src="farage.png" width="140">
+          </div>
+        </div>
+        <div class="row p-b-3">
+          <div class="col-xs-12 text-xs-center">
+            <hr class="m-t-2 m-b-3">
+
+            <h4 class="m-b-2">Used a bank to get Euros? Could have been worse!</h4>
+
+            <p class="lead">If you used a bank, add another <span id="hidden-fees"></span>€ to the equation, <u><strong>a total loss of <span id="total"></span>€</strong></u>. Banks and other money providers like currency shops add an extra ~5% hidden fee markup on top of the exchange rate.</p>
+
+            <a href="http://stophiddenfees.co.uk/" class="text-warning"><strong>Read more</strong></a>
+            <a href="/" class="text-warning"><strong>Try again</strong></a>
           </div>
         </div>
       </div>
@@ -172,6 +183,19 @@
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.3/js/bootstrap.min.js" integrity="sha384-ux8v3A6CPtOTqOzMKiuo3d/DomGaaClxFYdCu2HPMBEkf6x2xiDyJ7gkXU0MWwaD" crossorigin="anonymous"></script>
 
   <script>
+    var ExchangeRate = {
+      get: function(route, callback) {
+        $.ajax({
+          type: 'GET',
+          url: 'http://query.yahooapis.com/v1/public/yql?q=select * from yahoo.finance.xchange where pair in ("' + route + '")&env=store://datatables.org/alltableswithkeys',
+          dataType: 'xml',
+          success: function(xml) {
+            callback(parseFloat($(xml).find('Rate').text()));
+          }
+        });
+      }
+    };
+
     var HashValue = function(onChange) {
       var
         hash = function() {
@@ -198,61 +222,86 @@
       }
     };
 
-    var Calculator = function(rateToday) {
-      var
-        RATE_BEFORE = 1.31,//rate GBP-EUR
-        RATE_INVERSE_TODAY = 1/rateToday;
+    var BrexitCalculator = {
+      calculate: function(rateBefore, rateAfter, amountPounds) {
+        var
+          before = amountPounds * rateBefore,
+          after = amountPounds * rateAfter,
+          diff = before - after,
+          inverseAfter = 1/rateAfter;
 
-      return {
-        calculate: function(amountPounds) {
-            var
-              before = amountPounds * RATE_BEFORE,
-              after = amountPounds * rateToday,
-              diff = before - after;
-
-            return {
-              before: before,
-              after: after,
-              diff: diff,
-              diffPounds: diff * RATE_INVERSE_TODAY
-            };
-        }
+        return {
+          before: before,
+          after: after,
+          diff: diff,
+          diffPounds: diff * inverseAfter
+        };
       }
-    }
+    };
 
-    var
-      elements = {
-        calculateButton: $('#calculate'),
-        resultSection: $('#result-section'),
-        calculateSection: $('#calculate-section'),
-        amountField: $('#amount'),
-        originalField: $('#original'),
-        diffField: $('#diff'),
-        afterField: $('#after'),
-        beforeField: $('#before')
-      },
-      CLASS = {
-        HIDDEN: 'hidden-xs-up'
-      },
-      calculator = Calculator(1.17),
-      calculate = function(amount)  {
-        elements.resultSection.removeClass(CLASS.HIDDEN);
-        elements.calculateSection.addClass(CLASS.HIDDEN);
-        var result = calculator.calculate(amount);
+    var App = function(elements) {
+      var
+        CLASS = {
+          HIDDEN: 'hidden-xs-up'
+        },
+        RATE_BEFORE = 1.31,//rate GBP-EUR
+        HIDDEN_FEES = 0.05,
+        rateOriginal = null,
+        rateAfter = null,
+        calculate = function(amount)  {
+          elements.amountField.val(amount);
+          elements.calculateButton.text('Calculating…')
+          elements.calculateButton.addClass('disabled');
 
-        elements.originalField.text(amount);
-        elements.diffField.text(Math.round(result.diff));
-elements.beforeField.text(Math.round(result.before));
-elements.afterField.text(Math.round(result.after));
-      },
-      init = function() {
-        hashValue = HashValue(calculate);
-        elements.calculateButton.on('click', function() {
+          if (!rateAfter) {
+            ExchangeRate.get('GBPEUR', function(todayRate) {
+              rateOriginal = todayRate;
+              rateAfter = todayRate * (1 - HIDDEN_FEES);
+              calculate(amount);
+            });
+            return;
+          }
+          elements.resultSection.removeClass(CLASS.HIDDEN);
+          elements.calculateSection.addClass(CLASS.HIDDEN);
+          elements.originalField.text(amount);
+
+          var result = BrexitCalculator.calculate(RATE_BEFORE, rateOriginal, amount);
+          elements.diffField.text(Math.round(result.diff));
+          elements.beforeField.text(Math.round(result.before));
+          elements.afterField.text(Math.round(result.after));
+          elements.rateBefore.text(RATE_BEFORE);
+          elements.rateAfter.text(rateOriginal);
+
+          elements.hiddenFees.text(Math.round(result.diff * HIDDEN_FEES));
+          elements.total.text(Math.round(result.diff) + Math.round(result.diff * HIDDEN_FEES));
+        },
+        navigateToAmount = function() {
           hashValue.set(elements.amountField.val());
-        });
-      };
+        },
+        init = function() {
+          hashValue = HashValue(calculate);
+          elements.calculateButton.on('click', navigateToAmount);
+        };
 
-    init();
+        return {
+          init: init
+        };
+    };
+
+    App({
+      calculateButton: $('#calculate'),
+      resultSection: $('#result-section'),
+      calculateSection: $('#calculate-section'),
+      amountField: $('#amount'),
+      originalField: $('#original'),
+      diffField: $('#diff'),
+      afterField: $('#after'),
+      beforeField: $('#before'),
+      rateBefore: $('#rate-before'),
+      rateAfter: $('#rate-after'),
+      hiddenFees: $('#hidden-fees'),
+      total: $('#total')
+    }).init();
   </script>
 </body>
 </html>
