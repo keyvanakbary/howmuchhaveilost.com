@@ -106,21 +106,23 @@
     <div class="container">
       <div class="row p-t-3 p-b-3">
         <div class="col-sm-12">
-          <form class="form-inline">
+          <form class="form-inline" id="calculate-form">
             <div class="form-group">
               <p class="form-control-static">I've just spent</p>
             </div>
             <div class="form-group">
               <div class="input-group">
                 <div class="input-group-addon">£</div>
-                <input type="text" class="form-control" placeholder="Amount" value="300" id="amount" autofocus>
+                <input placeholder="300" class="form-control" placeholder="Amount" id="amount" type="number" step="any" min="0" required autofocus>
               </div>
             </div>
             <div class="form-group">
               <p class="form-control-static">somewhere in Europe</p>
             </div>
+            <div>
+              <button type="submit" class="btn btn-outline-primary btn-lg m-t-2">Calculate loss</button>
+            </div>
           </form>
-          <button type="submit" class="btn btn-outline-primary btn-lg m-t-2" id="calculate">Calculate loss</button>
         </div>
       </div>
     </div>
@@ -195,7 +197,7 @@
           return window.location.hash;
         },
         hashValue = function() {
-          return parseInt(hash().replace(/^#/,''));
+          return parseInt(hash().replace(/^#/,'')) || 0;
         },
         setValue = function(value) {
           window.location.hash = value;
@@ -273,7 +275,8 @@
           elements.hiddenFees.text(Math.round(amount * HIDDEN_FEES));
           elements.total.text(Math.round(result.diff) + Math.round(amount * HIDDEN_FEES));
         },
-        navigateToAmount = function() {
+        navigateToAmount = function(e) {
+          e.preventDefault();
           hashValue.set(elements.amountField.val());
         },
         openPopUp = function(url) {
@@ -289,7 +292,7 @@
         },
         init = function() {
           hashValue = HashValue(calculate);
-          elements.calculateButton.on('click', navigateToAmount);
+          elements.calculateForm.on('submit', navigateToAmount);
           elements.shareTwitter.on('click', shareOnTwitter)
         };
 
@@ -299,7 +302,7 @@
     };
 
     App({
-      calculateButton: $('#calculate'),
+      calculateButton: $('#calculate-button'),
       resultSection: $('#result-section'),
       calculateSection: $('#calculate-section'),
       amountField: $('#amount'),
@@ -311,7 +314,8 @@
       rateAfter: $('#rate-after'),
       hiddenFees: $('#hidden-fees'),
       total: $('#total'),
-      shareTwitter: $('#share-twitter')
+      shareTwitter: $('#share-twitter'),
+      calculateForm: $('#calculate-form')
     }).init();
   </script>
   <script>
