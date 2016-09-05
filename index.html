@@ -270,10 +270,8 @@
           elements.rateBefore.text(RATE_BEFORE);
           elements.rateAfter.text(rateOriginal);
 
-          var unfairRate = rateOriginal * (1 - HIDDEN_FEES);
-          var hiddenResult = BrexitCalculator.calculate(RATE_BEFORE, unfairRate, amount);
-          elements.hiddenFees.text(Math.round(hiddenResult.diff - result.diff));
-          elements.total.text(Math.round(result.diff) + Math.round(hiddenResult.diff - result.diff));
+          elements.hiddenFees.text(Math.round(amount * HIDDEN_FEES));
+          elements.total.text(Math.round(result.diff) + Math.round(amount * HIDDEN_FEES));
         },
         navigateToAmount = function() {
           hashValue.set(elements.amountField.val());
