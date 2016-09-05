@@ -154,8 +154,8 @@
 
             <p>If you used a bank, add another <span id="hidden-fees"></span>€ to the equation, <u class="lead"><strong>a total loss of <span id="total"></span>€</strong></u>. Banks and other money providers like currency shops add an extra ~5% hidden fee markup on top of the exchange rate.</p>
 
-            <a href="http://stophiddenfees.co.uk/" class="text-warning m-r-1"><strong>Read more</strong></a>
-            <a href="/" class="text-warning m-l-1"><strong>Try again</strong></a>
+            <a href="/" class="text-warning m-r-1"><strong>Try again</strong></a>
+            <a href="http://stophiddenfees.co.uk/" class="text-warning"><strong>Read more</strong></a>
           </div>
         </div>
       </div>
@@ -207,6 +207,9 @@
       }
 
       $(window).on('hashchange', function() {
+        if (!hash()) {
+          return;
+        }
         onChange(hashValue())
       });
 
@@ -267,8 +270,10 @@
           elements.rateBefore.text(RATE_BEFORE);
           elements.rateAfter.text(rateOriginal);
 
-          elements.hiddenFees.text(Math.round(result.diff * HIDDEN_FEES));
-          elements.total.text(Math.round(result.diff) + Math.round(result.diff * HIDDEN_FEES));
+          var unfairRate = rateOriginal * (1 - HIDDEN_FEES);
+          var hiddenResult = BrexitCalculator.calculate(RATE_BEFORE, unfairRate, amount);
+          elements.hiddenFees.text(Math.round(hiddenResult.diff - result.diff));
+          elements.total.text(Math.round(result.diff) + Math.round(hiddenResult.diff - result.diff));
         },
         navigateToAmount = function() {
           hashValue.set(elements.amountField.val());
